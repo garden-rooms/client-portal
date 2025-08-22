@@ -22,7 +22,7 @@ export const sendEmail = action({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Quality Outdoor Rooms <portal@qualityoutdoorrooms.co.uk>", // verified domain
+        from: "Quality Outdoor Rooms <contact@qualityoutdoorrooms.co.uk>", // verified domain
         to,
         subject,
         html: `<p>${body}</p>`,
