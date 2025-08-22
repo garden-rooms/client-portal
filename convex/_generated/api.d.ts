@@ -16,7 +16,9 @@ import type {
 import type * as additionalWork from "../additionalWork.js";
 import type * as auth from "../auth.js";
 import type * as documents from "../documents.js";
+import type * as emails from "../emails.js";
 import type * as http from "../http.js";
+import type * as invitations from "../invitations.js";
 import type * as milestones from "../milestones.js";
 import type * as notes from "../notes.js";
 import type * as notifications from "../notifications.js";
@@ -37,7 +39,9 @@ declare const fullApi: ApiFromModules<{
   additionalWork: typeof additionalWork;
   auth: typeof auth;
   documents: typeof documents;
+  emails: typeof emails;
   http: typeof http;
+  invitations: typeof invitations;
   milestones: typeof milestones;
   notes: typeof notes;
   notifications: typeof notifications;

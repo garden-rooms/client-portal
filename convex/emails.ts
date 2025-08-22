@@ -1,5 +1,5 @@
 // convex/emails.ts
-import { action } from "./_generated/server"; // note: generated server import
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 
 export const sendEmail = action({
@@ -8,22 +8,25 @@ export const sendEmail = action({
     subject: v.string(),
     body: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const { to, subject, body } = args;
 
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) throw new Error("RESEND_API_KEY missing in Convex env vars");
 
-    const baseUrl = process.env.RESEND_BASE_URL || "https://api.resend.com";
-    const from = "Quality Outdoor Rooms <contact@qualityoutdoorrooms.co.uk>"; // change once domain verified
-
-    const res = await fetch(`${baseUrl}/emails`, {
+    // Always hit Resend directly (no proxy)
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from, to, subject, html: `<p>${body}</p>` }),
+      body: JSON.stringify({
+        from: "Quality Outdoor Rooms <portal@qualityoutdoorrooms.co.uk>", // verified domain
+        to,
+        subject,
+        html: `<p>${body}</p>`,
+      }),
     });
 
     const text = await res.text();
@@ -32,4 +35,3 @@ export const sendEmail = action({
     return { ok: true };
   },
 });
-

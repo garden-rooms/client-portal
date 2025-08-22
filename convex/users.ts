@@ -176,3 +176,4 @@ export const inviteClient = mutation({
     return newUserId;
   },
 });
+

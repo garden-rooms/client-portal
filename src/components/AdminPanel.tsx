@@ -1,3 +1,7 @@
+import { useAction } from "convex/react";
+
+
+
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -10,11 +14,12 @@ export function AdminPanel() {
 
   const clients = useQuery(api.users.getAllClients);
   const projects = useQuery(api.projects.getMyProjects);
-  const inviteClient = useMutation(api.users.inviteClient);
+  // const inviteClient = useMutation(api.users.inviteClient);
   const createProject = useMutation(api.projects.createProject);
-
+const inviteClientAndEmail = useAction(api.invitations.inviteClientAndEmail);
   const handleInviteClient = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const firstName = formData.get("firstName") as string;
@@ -27,7 +32,7 @@ export function AdminPanel() {
     }
 
     try {
-      await inviteClient({
+      await inviteClientAndEmail({
         email: email.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -36,7 +41,8 @@ export function AdminPanel() {
 
       toast.success("Client invited successfully!");
       setShowInviteForm(false);
-      (e.target as HTMLFormElement).reset();
+      e.currentTarget.reset();
+      // (e.target as HTMLFormElement).reset();
     } catch (error: any) {
       console.error("Invite error:", error);
       toast.error(error.message || "Failed to invite client");
