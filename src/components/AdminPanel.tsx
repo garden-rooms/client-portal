@@ -1,7 +1,4 @@
 import { useAction } from "convex/react";
-
-
-
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -82,6 +79,10 @@ const inviteClientAndEmail = useAction(api.invitations.inviteClientAndEmail);
       toast.error(error.message || "Failed to create project");
     }
   };
+
+  
+
+  const notifySummary = useAction(api.notify_summary.notifyProjectSummary);
 
   const tabs = [
     { id: "clients", label: "Clients", icon: "👥" },

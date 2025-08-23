@@ -2,6 +2,12 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
+export const getById = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => ctx.db.get(projectId),
+});
+
+
 // Get projects for current user
 export const getMyProjects = query({
   args: {},

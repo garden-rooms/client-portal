@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { api } from "./_generated/api";
 
 // Get documents for a project
 export const getProjectDocuments = query({
@@ -30,9 +31,8 @@ export const getProjectDocuments = query({
       .collect();
 
     // Filter visible documents for clients
-    const filteredDocuments = userProfile.role === "admin" 
-      ? documents 
-      : documents.filter(doc => doc.isVisible);
+    const filteredDocuments =
+      userProfile.role === "admin" ? documents : documents.filter((doc) => doc.isVisible);
 
     // Enrich with uploader information and file URLs
     const enrichedDocuments = [];
@@ -65,12 +65,7 @@ export const uploadDocument = mutation({
     projectId: v.id("projects"),
     title: v.string(),
     description: v.optional(v.string()),
-    type: v.union(
-      v.literal("quote"),
-      v.literal("invoice"),
-      v.literal("contract"),
-      v.literal("other")
-    ),
+    type: v.union(v.literal("quote"), v.literal("invoice"), v.literal("contract"), v.literal("other")),
     fileId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
@@ -110,17 +105,27 @@ export const uploadDocument = mutation({
       approvalStatus: args.requiresApproval ? "pending" : undefined,
     });
 
-    // Create notification for client if document is visible
-    if (args.isVisible) {
-      await ctx.db.insert("notifications", {
-        userId: project.clientId,
-        projectId: args.projectId,
-        type: "document_uploaded",
-        title: "New Document Available",
-        message: `A new ${args.type} "${args.title}" has been uploaded to your project.`,
-        isRead: false,
-        emailSent: false,
-      });
+    // Notify client if document is visible (use scheduler to invoke action from mutation)
+    if (args.isVisible && project.clientId) {
+      try {
+        const client = await ctx.db.get(project.clientId);
+        const recipientEmail = client?.email;
+        const projectTitle = project?.name ?? "your project"; // <-- use 'name' not 'title'
+        if (recipientEmail) {
+          await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
+            userId: project.clientId,
+            recipientEmail,
+            projectId: args.projectId,
+            projectTitle,
+            event: "document",
+            title: args.title,
+            message: `A new ${args.type} "${args.title}" has been uploaded to your project.`,
+            actorUserId: userId as any, // optional: prevents emailing the uploader
+          });
+        }
+      } catch (err) {
+        console.log("notifyUser(document) failed:", err);
+      }
     }
 
     // Log audit trail
@@ -163,19 +168,29 @@ export const toggleDocumentVisibility = mutation({
       isVisible: args.isVisible,
     });
 
-    // Create notification for client if made visible
+    // When made visible, email the client (use scheduler)
     if (args.isVisible) {
-      const project = await ctx.db.get(document.projectId);
-      if (project) {
-        await ctx.db.insert("notifications", {
-          userId: project.clientId,
-          projectId: document.projectId,
-          type: "document_uploaded",
-          title: "Document Now Available",
-          message: `Document "${document.title}" is now available for viewing.`,
-          isRead: false,
-          emailSent: false,
-        });
+      try {
+        const project = await ctx.db.get(document.projectId);
+        if (project?.clientId) {
+          const client = await ctx.db.get(project.clientId);
+          const recipientEmail = client?.email;
+          const projectTitle = project?.name ?? "your project"; // <-- use 'name'
+          if (recipientEmail) {
+            await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
+              userId: project.clientId,
+              recipientEmail,
+              projectId: document.projectId,
+              projectTitle,
+              event: "document",
+              title: "Document Now Available",
+              message: `Document "${document.title}" is now available for viewing.`,
+              actorUserId: userId as any,
+            });
+          }
+        }
+      } catch (err) {
+        console.log("notifyUser(toggle visibility) failed:", err);
       }
     }
 
@@ -219,7 +234,7 @@ export const approveDocument = mutation({
       approvalNotes: args.notes,
     });
 
-    // Create notification for admin
+    // (Keeping your existing admin notifications here)
     const adminProfiles = await ctx.db.query("userProfiles").collect();
     for (const profile of adminProfiles) {
       if (profile.role === "admin") {
@@ -242,7 +257,9 @@ export const approveDocument = mutation({
       action: `document_${args.status}`,
       entityType: "document",
       entityId: args.documentId,
-      details: `${args.status} document: ${document.title}${args.notes ? ` - Notes: ${args.notes}` : ''}`,
+      details: `${args.status} document: ${document.title}${
+        args.notes ? ` - Notes: ${args.notes}` : ""
+      }`,
     });
 
     return args.documentId;

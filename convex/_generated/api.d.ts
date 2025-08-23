@@ -22,6 +22,7 @@ import type * as invitations from "../invitations.js";
 import type * as milestones from "../milestones.js";
 import type * as notes from "../notes.js";
 import type * as notifications from "../notifications.js";
+import type * as notify_summary from "../notify_summary.js";
 import type * as photos from "../photos.js";
 import type * as projects from "../projects.js";
 import type * as router from "../router.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   milestones: typeof milestones;
   notes: typeof notes;
   notifications: typeof notifications;
+  notify_summary: typeof notify_summary;
   photos: typeof photos;
   projects: typeof projects;
   router: typeof router;

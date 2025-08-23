@@ -34,14 +34,17 @@ export const inviteClientAndEmail = action({
     });
 
     // Send invitation email
-    await ctx.runAction(api.emails.sendEmail, {
-      to: args.email,
-      subject: "You're invited to Quality Outdoor Rooms client portal",
-      body: `Hi ${args.firstName},<br/><br/>
-        You've been invited to join our client portal. Please click the link below to set up your account:<br/>
-        <a href="https://qualityoutdoorrooms.co.uk/portal">Join Now</a><br/><br/>
-        – Quality Outdoor Rooms`,
-    });
+const portal = process.env.PORTAL_BASE_URL ?? "https://qualityoutdoorrooms.co.uk/portal";
+
+await ctx.runAction(api.emails.sendEmail, {
+  to: args.email,
+  subject: "You're invited to Quality Outdoor Rooms client portal",
+  body: `Hi ${args.firstName},<br/><br/>
+    You've been invited to join our client portal. Please click the link below to set up your account:<br/>
+    <a href="${portal}">Join Now</a><br/><br/>
+    – Quality Outdoor Rooms`,
+});
+
 
     return { ok: true, userId: newUserId };
   },

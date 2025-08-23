@@ -7,25 +7,28 @@ export const sendEmail = action({
     to: v.string(),
     subject: v.string(),
     body: v.string(),
+    replyTo: v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
-    const { to, subject, body } = args;
-
+  handler: async (ctx, { to, subject, body, replyTo }) => {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) throw new Error("RESEND_API_KEY missing in Convex env vars");
 
-    // Always hit Resend directly (no proxy)
-    const res = await fetch("https://api.resend.com/emails", {
+    const baseUrl = process.env.RESEND_BASE_URL || "https://api.resend.com";
+    const from = "Quality Outdoor Rooms <contact@qualityoutdoorrooms.co.uk>";
+
+    const res = await fetch(`${baseUrl}/emails`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Quality Outdoor Rooms <contact@qualityoutdoorrooms.co.uk>", // verified domain
+        from,
         to,
         subject,
-        html: `<p>${body}</p>`,
+        html: `<div>${body}</div>`,
+        // Resend expects snake_case for reply_to if using raw HTTP
+        reply_to: replyTo ?? "contact@qualityoutdoorrooms.co.uk",
       }),
     });
 
