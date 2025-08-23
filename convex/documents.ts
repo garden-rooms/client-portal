@@ -106,27 +106,27 @@ export const uploadDocument = mutation({
     });
 
     // Notify client if document is visible (use scheduler to invoke action from mutation)
-    if (args.isVisible && project.clientId) {
-      try {
-        const client = await ctx.db.get(project.clientId);
-        const recipientEmail = client?.email;
-        const projectTitle = project?.name ?? "your project"; // <-- use 'name' not 'title'
-        if (recipientEmail) {
-          await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
-            userId: project.clientId,
-            recipientEmail,
-            projectId: args.projectId,
-            projectTitle,
-            event: "document",
-            title: args.title,
-            message: `A new ${args.type} "${args.title}" has been uploaded to your project.`,
-            actorUserId: userId as any, // optional: prevents emailing the uploader
-          });
-        }
-      } catch (err) {
-        console.log("notifyUser(document) failed:", err);
-      }
-    }
+  //  if (args.isVisible && project.clientId) {
+     // try {
+      //  const client = await ctx.db.get(project.clientId);
+      //  const recipientEmail = client?.email;
+       // const projectTitle = project?.name ?? "your project"; // <-- use 'name' not 'title'
+       // if (recipientEmail) {
+        //  await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
+         //   userId: project.clientId,
+         //   recipientEmail,
+          //  projectId: args.projectId,
+          //  projectTitle,
+          //  event: "document",
+          //  title: args.title,
+           // message: `A new ${args.type} "${args.title}" has been uploaded to your project.`,
+           // actorUserId: userId as any, // optional: prevents emailing the uploader
+      //    });
+    //    }
+    //  } catch (err) {
+      //  console.log("notifyUser(document) failed:", err);
+     // }
+   // }
 
     // Log audit trail
     await ctx.db.insert("auditLogs", {
