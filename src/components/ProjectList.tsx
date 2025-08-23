@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+
 
 interface ProjectListProps {
   onSelectProject: (projectId: string) => void;
@@ -14,6 +15,13 @@ export function ProjectList({ onSelectProject, isAdmin }: ProjectListProps) {
   const notifySummary = useAction(api.notify_summary.notifyProjectSummary);
 
   const [busyProjectId, setBusyProjectId] = useState<string | null>(null);
+
+  
+
+// inside ProjectList component, right after hooks:
+useEffect(() => {
+  console.log("ProjectList mounted; isAdmin =", isAdmin);
+}, [isAdmin]);
 
   if (projects === undefined) {
     return (
@@ -78,10 +86,10 @@ export function ProjectList({ onSelectProject, isAdmin }: ProjectListProps) {
           {isAdmin ? "Manage all client projects" : "View and interact with your assigned projects"}
         </p>
 
-        {/* DEBUG — remove later */}
-        <div className="text-xs text-gray-400">ProjectList isAdmin = {String(isAdmin)}</div>
-      </div>
+      
 
+      </div>
+<div className="text-xs text-red-500">isAdmin = {String(isAdmin)}</div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
           <div
@@ -102,7 +110,10 @@ export function ProjectList({ onSelectProject, isAdmin }: ProjectListProps) {
               <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                 {project.description}
               </p>
+              
             )}
+{/* DEBUG: remove later */}
+<div>DEBUG: ProjectList isAdmin = {String(isAdmin)}</div>
 
             <div className="space-y-2 text-sm text-gray-500">
               {isAdmin && (

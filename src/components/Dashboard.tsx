@@ -8,6 +8,12 @@ export default function Dashboard() {
   const me = useQuery(api.users.getCurrentUser);
   const isAdmin = me?.profile?.role === "admin";
 
+  
+
+  
+
+
+
   // Navigate to a project (adjust if you use a router)
   const handleSelectProject = (projectId: string) => {
     window.location.href = `/portal/projects/${projectId}`;
@@ -21,6 +27,8 @@ export default function Dashboard() {
       </div>
     );
   }
+  
+<ProjectList onSelectProject={handleSelectProject} isAdmin={!!isAdmin} />
 
   return (
     <div className="space-y-4">
@@ -32,5 +40,7 @@ export default function Dashboard() {
         isAdmin={!!isAdmin}
       />
     </div>
+
+    
   );
 }
