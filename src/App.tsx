@@ -3,7 +3,7 @@ import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
-import { Dashboard } from "./components/Dashboard";
+import  Dashboard  from "./components/Dashboard";
 import { ProfileSetup } from "./components/ProfileSetup";
 
 export default function App() {
@@ -42,13 +42,13 @@ function Content() {
         </div>
       </Unauthenticated>
 
-      <Authenticated>
-        {!currentUser?.profile ? (
-          <ProfileSetup />
-        ) : (
-          <Dashboard user={currentUser} />
-        )}
-      </Authenticated>
+   <Authenticated>
+  {!currentUser?.profile ? (
+    <ProfileSetup />
+  ) : (
+    <Dashboard />                      // ✅ no props
+  )}
+</Authenticated>
     </>
   );
 }
