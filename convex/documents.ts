@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { api } from "./_generated/api";
+
+// flip this to true in the future if you ever want to re-enable auto emails
+const AUTO_EMAILS_ENABLED = false;
 
 // Get documents for a project
 export const getProjectDocuments = query({
@@ -35,7 +37,7 @@ export const getProjectDocuments = query({
       userProfile.role === "admin" ? documents : documents.filter((doc) => doc.isVisible);
 
     // Enrich with uploader information and file URLs
-    const enrichedDocuments = [];
+    const enrichedDocuments: any[] = [];
     for (const doc of filteredDocuments) {
       const uploader = await ctx.db.get(doc.uploadedBy);
       const uploaderProfile = await ctx.db
@@ -65,7 +67,12 @@ export const uploadDocument = mutation({
     projectId: v.id("projects"),
     title: v.string(),
     description: v.optional(v.string()),
-    type: v.union(v.literal("quote"), v.literal("invoice"), v.literal("contract"), v.literal("other")),
+    type: v.union(
+      v.literal("quote"),
+      v.literal("invoice"),
+      v.literal("contract"),
+      v.literal("other")
+    ),
     fileId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
@@ -105,28 +112,9 @@ export const uploadDocument = mutation({
       approvalStatus: args.requiresApproval ? "pending" : undefined,
     });
 
-    // Notify client if document is visible (use scheduler to invoke action from mutation)
-  //  if (args.isVisible && project.clientId) {
-     // try {
-      //  const client = await ctx.db.get(project.clientId);
-      //  const recipientEmail = client?.email;
-       // const projectTitle = project?.name ?? "your project"; // <-- use 'name' not 'title'
-       // if (recipientEmail) {
-        //  await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
-         //   userId: project.clientId,
-         //   recipientEmail,
-          //  projectId: args.projectId,
-          //  projectTitle,
-          //  event: "document",
-          //  title: args.title,
-           // message: `A new ${args.type} "${args.title}" has been uploaded to your project.`,
-           // actorUserId: userId as any, // optional: prevents emailing the uploader
-      //    });
-    //    }
-    //  } catch (err) {
-      //  console.log("notifyUser(document) failed:", err);
-     // }
-   // }
+    // NOTE: auto-emails are disabled on purpose.
+    // If you want to re-enable in the future, wrap your notify call like:
+    // if (AUTO_EMAILS_ENABLED && args.isVisible) { ... }
 
     // Log audit trail
     await ctx.db.insert("auditLogs", {
@@ -164,35 +152,11 @@ export const toggleDocumentVisibility = mutation({
     const document = await ctx.db.get(args.documentId);
     if (!document) throw new Error("Document not found");
 
-    await ctx.db.patch(args.documentId, {
-      isVisible: args.isVisible,
-    });
+    await ctx.db.patch(args.documentId, { isVisible: args.isVisible });
 
-    // When made visible, email the client (use scheduler)
-    if (args.isVisible) {
-      try {
-        const project = await ctx.db.get(document.projectId);
-        if (project?.clientId) {
-          const client = await ctx.db.get(project.clientId);
-          const recipientEmail = client?.email;
-          const projectTitle = project?.name ?? "your project"; // <-- use 'name'
-          if (recipientEmail) {
-            await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
-              userId: project.clientId,
-              recipientEmail,
-              projectId: document.projectId,
-              projectTitle,
-              event: "document",
-              title: "Document Now Available",
-              message: `Document "${document.title}" is now available for viewing.`,
-              actorUserId: userId as any,
-            });
-          }
-        }
-      } catch (err) {
-        console.log("notifyUser(toggle visibility) failed:", err);
-      }
-    }
+    // NOTE: auto-emails on visibility change are disabled on purpose.
+    // If you want to re-enable in the future, gate your notify call with:
+    // if (AUTO_EMAILS_ENABLED && args.isVisible) { ... }
 
     return args.documentId;
   },
@@ -257,9 +221,7 @@ export const approveDocument = mutation({
       action: `document_${args.status}`,
       entityType: "document",
       entityId: args.documentId,
-      details: `${args.status} document: ${document.title}${
-        args.notes ? ` - Notes: ${args.notes}` : ""
-      }`,
+      details: `${args.status} document: ${document.title}${args.notes ? ` - Notes: ${args.notes}` : ""}`,
     });
 
     return args.documentId;
@@ -272,7 +234,6 @@ export const generateUploadUrl = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-
     return await ctx.storage.generateUploadUrl();
   },
 });

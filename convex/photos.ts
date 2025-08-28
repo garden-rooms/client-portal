@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { api } from "./_generated/api";
 
 // Get photos for a project
 export const getProjectPhotos = query({
@@ -35,7 +34,7 @@ export const getProjectPhotos = query({
       userProfile.role === "admin" ? photos : photos.filter((photo) => photo.isVisible);
 
     // Enrich with uploader information and file URLs
-    const enrichedPhotos = [];
+    const enrichedPhotos: any[] = [];
     for (const photo of filteredPhotos) {
       const uploader = await ctx.db.get(photo.uploadedBy);
       const uploaderProfile = await ctx.db
@@ -100,55 +99,7 @@ export const uploadPhoto = mutation({
       category: args.category,
     });
 
-    // 🔔 Notifications (email + DB row) using scheduler -> action
-    if (args.isVisible) {
-      const projectTitle = project?.name ?? "your project";
-
-      try {
-        if (userProfile.role === "admin") {
-          // Admin uploaded → notify the client
-          if (project.clientId) {
-            const client = await ctx.db.get(project.clientId);
-            const recipientEmail = client?.email;
-            if (recipientEmail) {
-              await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
-                userId: project.clientId,
-                recipientEmail,
-                projectId: args.projectId,
-                projectTitle,
-                event: "photo",
-                title: args.title,
-                message: `A new photo "${args.title}" has been uploaded to your project.`,
-                actorUserId: userId as any,
-              });
-            }
-          }
-        } else {
-          // Client uploaded → notify all admins
-          const allProfiles = await ctx.db.query("userProfiles").collect();
-          const adminProfiles = allProfiles.filter((p) => p.role === "admin");
-
-          for (const profile of adminProfiles) {
-            const admin = await ctx.db.get(profile.userId);
-            const recipientEmail = admin?.email;
-            if (!recipientEmail) continue;
-
-            await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
-              userId: profile.userId,
-              recipientEmail,
-              projectId: args.projectId,
-              projectTitle,
-              event: "photo",
-              title: args.title,
-              message: `A new photo "${args.title}" was uploaded by the client.`,
-              actorUserId: userId as any,
-            });
-          }
-        }
-      } catch (err) {
-        console.log("notifyUser(photo) failed:", err);
-      }
-    }
+    // NOTE: auto-emails are intentionally disabled.
 
     // Log audit trail
     await ctx.db.insert("auditLogs", {
@@ -186,35 +137,9 @@ export const togglePhotoVisibility = mutation({
     const photo = await ctx.db.get(args.photoId);
     if (!photo) throw new Error("Photo not found");
 
-    await ctx.db.patch(args.photoId, {
-      isVisible: args.isVisible,
-    });
+    await ctx.db.patch(args.photoId, { isVisible: args.isVisible });
 
-    // If made visible -> notify client
-    if (args.isVisible) {
-      try {
-        const project = await ctx.db.get(photo.projectId);
-        if (project?.clientId) {
-          const client = await ctx.db.get(project.clientId);
-          const recipientEmail = client?.email;
-          const projectTitle = project?.name ?? "your project";
-          if (recipientEmail) {
-            await ctx.scheduler.runAfter(0, api.notifications.notifyUser, {
-              userId: project.clientId,
-              recipientEmail,
-              projectId: photo.projectId,
-              projectTitle,
-              event: "photo",
-              title: "Photo Now Available",
-              message: `Photo "${photo.title}" is now available for viewing.`,
-              actorUserId: userId as any,
-            });
-          }
-        }
-      } catch (err) {
-        console.log("notifyUser(toggle photo visibility) failed:", err);
-      }
-    }
+    // NOTE: auto-emails on visibility change are intentionally disabled.
 
     return args.photoId;
   },
